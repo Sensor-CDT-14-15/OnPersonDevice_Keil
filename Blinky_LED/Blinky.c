@@ -1,4 +1,5 @@
 #include <MKL25Z4.H>
+#include "uart.h"
 
 #define LED_NUM     3                   /* Number of user LEDs                */
 volatile uint32_t msTicks;                            /* counts 1ms timeTicks */
@@ -58,7 +59,13 @@ int main (void) {
   SystemCoreClockUpdate();                      /* Get Core Clock Frequency */
   SysTick_Config(SystemCoreClock/1000);         /* Generate interrupt each 1 ms    */
   
-  LED_Config();                             
+  LED_Config();   
+	uart0_init (41940, 9600);
+	
+	SIM->SCGC5    |= (1UL <<  9) | (1UL <<  10);    //Uart_0 clock and Clock to the port (e.g. B/E)
+ 	PORTE->PCR[20] = (0x2 << 8);		//Set up Uart Pins
+ 	PORTE->PCR[21] = (0x2 << 8);
+
  
   while(1) {
     LED_On ();
