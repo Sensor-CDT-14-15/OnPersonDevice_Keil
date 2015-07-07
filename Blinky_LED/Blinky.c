@@ -68,6 +68,7 @@ int main (void) {
 
  
   while(1) {
+		uart0_putchar('A');
     LED_On ();
     Delay(500);
     LED_Off();
