@@ -37,7 +37,7 @@ void uart0_init (int sysclk, int baud)
     int reg_temp = 0;
     int temp = 0;
     
-    SIM->SCGC4 |= SIM_SCGC4_UART0_MASK;
+    SIM->SCGC4 |= SIM_SCGC4_UART0_MASK;	
     SIM->SOPT2 |= (0x1 << 26);
     
     // Disable UART0 before changing registers

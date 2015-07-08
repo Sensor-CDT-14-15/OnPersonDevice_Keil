@@ -62,17 +62,22 @@ int main (void) {
   LED_Config();   
 	uart0_init (41940, 9600);
 	
-	SIM->SCGC5    |= (1UL <<  9) | (1UL <<  10);    //Uart_0 clock and Clock to the port (e.g. B/E)
- 	PORTE->PCR[20] = (0x2 << 8);		//Set up Uart Pins
- 	PORTE->PCR[21] = (0x2 << 8);
-
- 
+	SIM->SCGC5    |= (1UL <<  9) | (1UL <<  13);    //Uart_0 clock and Clock to the port (e.g. B/E(13))
+	SIM->SCGC5    |= (1UL <<  13);
+  SIM->SCGC4		|= (1UL << 10); 
+	
+	PORTE->PCR[20] = (0x4 << 8);		//Set up Uart Pins
+ 	PORTE->PCR[21] = (0x4 << 8);
+	//PORTE->PCR[20] = (0x8u << 3);		//Set up Uart Pins
+ 	//PORTE->PCR[21] = (0x8u << 3);
+  
   while(1) {
 		uart0_putchar('A');
     LED_On ();
-    Delay(500);
+   // Delay(500);
     LED_Off();
     Delay(500);
+		uart0_putchar('B');
   }
 }
 
