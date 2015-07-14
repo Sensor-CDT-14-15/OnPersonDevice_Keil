@@ -1,8 +1,15 @@
 #include <MKL25Z4.H>
 #include "uart.h"
+#include "gps.h"
 
 #define LED_NUM     3                   /* Number of user LEDs                */
 volatile uint32_t msTicks;                            /* counts 1ms timeTicks */
+char gpsbuffer[256];										//Buffer for GPS string
+int lock;
+float longitude;
+float latitude;
+int count;
+
 /*----------------------------------------------------------------------------
   SysTick_Handler
  *----------------------------------------------------------------------------*/
@@ -25,13 +32,17 @@ __INLINE static void Delay (uint32_t dlyTicks) {
  *------------------------------------------------------------------------------*/
 __INLINE static void LED_Config(void) {
 
-  SIM->SCGC5    |= (1UL <<  10) | (1UL <<  12);      /* Enable Clock to Port B & D */ 
+  SIM->SCGC5    |= (1UL <<  10) | (1UL <<  12)| (1UL <<  11);      /* Enable Clock to Port B, C & D */ 
   PORTB->PCR[18] = (1UL <<  8);                      /* Pin PTB18 is GPIO */
   PORTB->PCR[19] = (1UL <<  8);                      /* Pin PTB19 is GPIO */
   PORTD->PCR[1]  = (1UL <<  8);                      /* Pin PTD1  is GPIO */
 
 	FPTB->PDOR |=  (1UL << 18);							// enable PTB18 as an output 
 	FPTB->PDDR |= (1ul << 19);							//enable PTB19 as an output
+	
+	PORTC->PCR[8] = (1UL <<  8);  					//Pin PTC8 as GPIO for the button_1
+	PORTC->PCR[9] = (1UL <<  8);  					//Pin PTC9 as GPIO for the button_2
+	
 }
 
 /*------------------------------------------------------------------------------
@@ -55,12 +66,130 @@ __INLINE static void LED_Off (void) {
 /*----------------------------------------------------------------------------
   MAIN function
  *----------------------------------------------------------------------------*/
+
+void get_serial(void)
+{
+	int i;
+	int j; 
+			char buffer[9];
+		for(i=0;i<3;i++)
+		{
+				while(!uart0_getchar_present());
+				buffer[i] = uart0_getchar();
+				uart0_putchar('G');
+		}
+}
+
+void GPSline(void) {
+	
+			char buffer[128];
+	int lenght;
+	int k;
+		int i; 
+	
+		lenght = sprintf (buffer, "$PSRF103,00,01,00,01*25");
+		for(k=0;k<lenght;k++)
+		{
+			uart0_putchar(buffer[k]);
+			Delay(1);
+		}
+	
+				uart0_putchar(0x0D);		//CR
+			uart0_putchar(0x0a);		//LF
+	
+	count += 1;
+	while(!uart0_getchar_present());
+	 while(uart0_getchar() != '$');// wait for the start of a line
+		for(i=0;i<256;i++)
+		{
+				while(!uart0_getchar_present());
+				gpsbuffer[i] = uart0_getchar();
+//				uart0_putchar(gpsbuffer[i]);
+			
+			if(gpsbuffer[i] == '\r') {
+            gpsbuffer[i] = 0;
+					while(uart0_getchar_present()) uart0_getchar();
+            return;
+		}			
+	}
+}
+
+__INLINE static int buttonPress_1(void){
+if(((FPTC->PDIR) & (1UL << 8)) == (1UL << 8)){ 
+	return 1; 
+} else {
+return 0; }	
+}
+
+__INLINE static int buttonPress_2(void){
+if(((FPTC->PDIR) & (1UL << 9)) == (1UL << 9)){ 
+	return 1; 
+} else {
+return 0; }	
+}
+
+
+int getlock(void) {
+	float time;
+  char ns, ew;
+	int sample;
+	float minutes;
+	float degrees;
+ if(sscanf(gpsbuffer, "GPGGA,%f,%f,%c,%f,%c,%d", &time, &latitude, &ns, &longitude, &ew, &lock) >= 1) { 
+            if(!lock) {
+                longitude = 0.0;
+                latitude = 0.0;        
+                return 0;
+            } else {
+                if(ns == 'S') {    latitude  *= -1.0; }
+                if(ew == 'W') {    longitude *= -1.0; 
+								degrees = latitude /100.0f;
+								degrees = trunca(degrees);
+               // float degrees = trunca(latitude / 100.0f);
+                minutes = latitude - (degrees * 100.0f);
+                latitude = degrees + minutes / 60.0f;    
+                
+                //degrees = trunc(longitude / 100.0f * 0.01f);
+                degrees = trunca(longitude/ 100.0f);
+                minutes = longitude - (degrees * 100.0f);
+                longitude = degrees + minutes / 60.0f;
+                return 1;
+            }
+	
+}
+ }
+ }
+
+float trunca(float v) {
+    if(v < 0.0) {
+        v*= -1.0;
+        v = floor(v);
+        v*=-1.0;
+    } else {
+        v = floor(v);
+    }
+    return v;
+}
+ 
+/*
+void getGPS(void){
+	
+}
+*/
+
 int main (void) {
+	char buffer[128];
+	int lenght;
+	int i;
+	int button_1;
+	int button_2;
+	
   SystemCoreClockUpdate();                      /* Get Core Clock Frequency */
   SysTick_Config(SystemCoreClock/1000);         /* Generate interrupt each 1 ms    */
-  
+	
   LED_Config();   
-	uart0_init (41940, 9600);
+//	uart0_init (41940, 9600);
+		uart0_init (41940, 4800);
 	
 	// UArt_0 initilization
 	
@@ -72,13 +201,34 @@ int main (void) {
  	PORTE->PCR[21] = (0x4 << 8);		//Set UART0 pins to alteratnative 4 RX
 
   
+	//Setup GPS for polling $PSRF103,00,01,00,01*25 
+	
+	lenght = sprintf (buffer, "$PSRF103,00,01,00,01*25");
+		for(i=0;i<lenght;i++)
+		{
+			uart0_putchar(buffer[i]);
+			//Delay(1);
+		}
+			uart0_putchar(0x0D);		//CR
+		//Delay(1);
+			uart0_putchar(0x0A);		//LF
+	
+	
   while(1) {
-		uart0_putchar('A');
+		//uart0_putchar('A');
+		button_1 = buttonPress_1();
+		button_2 = buttonPress_2();
+		/*
+		GPSline();
+		//get_serial();
+		getlock();
+
     LED_On ();
+  //  Delay(500);
+   // LED_Off();
    // Delay(500);
-    LED_Off();
-    Delay(500);
-		uart0_putchar('B');
+	//	uart0_putchar('B');
+*/
   }
 }
 

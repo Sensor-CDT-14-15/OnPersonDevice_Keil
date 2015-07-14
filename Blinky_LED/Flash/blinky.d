@@ -6,3 +6,4 @@
 .\flash\blinky.o: C:\Keil_v5\ARM\CMSIS\Include\core_cmFunc.h
 .\flash\blinky.o: C:\Keil_v5\ARM\Inc\Freescale\Kinetis\system_MKL25Z4.h
 .\flash\blinky.o: uart.h
+.\flash\blinky.o: gps.h
