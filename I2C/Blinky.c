@@ -148,9 +148,9 @@ void getGPS(void){
 
 void READ_adxl(void) {
 	//const int adxl_write = 0x98;//(0x4C << 1);
-	const int adxl_write = (0x1C << 1) | 0x1;  //Slave adress - 7 bit, bit shift by one and then or with 1 to set read
+	const int adxl_write = (0x1D << 1) | 0x1;  //Slave adress - 7 bit, bit shift by one and then or with 1 to set read
 	//const int adxl_read = 0x99;//0x4D;
-	const int adxl_read = (0x1C << 1) | 0x0;		//Slave adress - 7 bit, bit shift by one and then with a 0 to read
+	const int adxl_read = (0x1D << 1) | 0x0;		//Slave adress - 7 bit, bit shift by one and then with a 0 to read
 	char cmd[4];
 	char read_buff_x[6] = {0};
 	char read_buff_y[6] = {0};		
@@ -169,7 +169,7 @@ void READ_adxl(void) {
 				I2C_send(adxl_write, cmd, 1, 0);
 	
         // Set pointer to location 2 (first echo)
-        I2C_read(adxl_read, read_buff_x, 1, 1); // read the two-byte echo result
+        I2C_read(adxl_read, read_buff_x, 6, 1); // read the two-byte echo result
 	
 /*
 	//Get y-acceleration
