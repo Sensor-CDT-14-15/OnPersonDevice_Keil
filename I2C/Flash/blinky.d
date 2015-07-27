@@ -8,3 +8,5 @@
 .\flash\blinky.o: uart.h
 .\flash\blinky.o: gps.h
 .\flash\blinky.o: MKL25z_I2C.h
+.\flash\blinky.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\cmath
+.\flash\blinky.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h

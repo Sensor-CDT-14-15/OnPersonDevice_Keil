@@ -2,14 +2,14 @@
 #include "uart.h"
 #include "gps.h"
 #include "MKL25z_I2C.h"
-
-
-//#include <vector>
+#include "spi.h"
+#include <vector>
 #include <cmath>
-//#include <iostream>
-//#include <iterator>
+#include <iostream>
+#include "MMA8451Q.h"
+#include <iterator>
 
-//using namespace std;
+using namespace std;
 
 #define LED_NUM     3                   /* Number of user LEDs                */
 volatile uint32_t msTicks;                            /* counts 1ms timeTicks */
@@ -157,7 +157,7 @@ void getGPS(void){
 void READ_adxl(void) {
 	int x_msb =0;
 	int x_lsb = 0;
-	float x, y, z;
+	float x;
 	float x2;
 		//I2C aDRESS OF ACCELEROMETER 0x1D
 	const int adxl_read = (0x1D << 1) & 0xFE;
@@ -171,25 +171,54 @@ void READ_adxl(void) {
 	I2C_configure();	
 	
 	//activate peripheral
-	cmd[0]= 0x2A;			//Active register adress
-	cmd[1]= 0x01;			//Write 1 to activation register
-	I2C_send(adxl_write, cmd, 2, 0);	
+
+	    cmd[0]= 0x2A;			//Active register adress
+			cmd[1]= 0x01;			//Write 1 to activation register
+			I2C_send(adxl_write, cmd, 2, 0);	
 
 	//Get x-acceleration	
-	cmd[0] = 0x01;				
-	I2C_send(adxl_write, cmd, 1, 0);
-	I2C_read(adxl_read, read_buff_x, 6, 1); // Read in 6 bytes, 2 per axis
 	
-//Convert to x,y,z reading using msb and lsb, assume last two digits noise
-//		x_msb = (int)(read_buff_x[0]<<6); 
-//		x_lsb = (int)(read_buff_x[1] >>2);
-//		x = (float)(((float)(x_msb|x_lsb)) / 4096.0);
+			cmd[0] = 0x01;				
+			I2C_send(adxl_write, cmd, 1, 0);
+	    I2C_read(adxl_read, read_buff_x, 6, 1); // read the two-byte echo result
+//Convert to x reading with msb and lsb, assume last two digits noise?
+		x_msb = (int)(read_buff_x[0]<<6); 
+		x_lsb = (int)(read_buff_x[1] >>2);
+		x = (float)(((float)(x_msb|x_lsb)) / 4096.0);
 	
-		x = ((int)(read_buff_x[0] << 6) | (int)(read_buff_x[1] >> 2)) / 4096.0;
-		y = ((int)(read_buff_x[2] << 6) | (int)(read_buff_x[3] >> 2)) / 4096.0;
-		z = ((int)(read_buff_x[4] << 6) | (int)(read_buff_x[5] >> 2)) / 4096.0;
-			 
-		I2C_powerDown();	
+	 x2 = ((int)(read_buff_x[0] << 6) | (int)(read_buff_x[1] >> 2)) / 4096.0;
+	
+	//x = (float)((int(read_buff_x[0]<<6)|int(read_buff_x[0]<<6))/4096.0);
+	
+	//Get y-acceleration
+			//	cmd[0] = 0x03;					
+				//I2C_send(adxl_write, cmd, 1, 0);	
+        // Set pointer to location 2 (first echo)
+        //I2C_read(adxl_read, read_buff_y, 2, 1); // read the two-byte echo result
+
+//Get z-acceleration
+				//cmd[0] = 0x05;					
+				//I2C_send(adxl_write, cmd, 1, 0);	
+        // Set pointer to location 2 (first echo)
+        //I2C_read(adxl_read, read_buff_z, 2, 1); // read the two-byte echo result
+				
+				/*
+		
+				/*read_buff[1] = 0x3 & read_buff[0];
+				read_buff[0] &= 0x07<<2;
+				read_buff[0] >>= 2;*/
+				
+		/*if(read_buff[1] == 0x01)
+				//side = Front;
+				else if(read_buff[1] == 0x02)
+				//side = Back;
+				else
+				//side = NOTKNOWN;
+				
+
+				
+				*/				 
+				I2C_powerDown();	
 	}
 
 
@@ -219,6 +248,12 @@ int main (void) {
 	
 	PORTB->PCR[0] = (0x2 <<  8); 					//set adxl scl	set port PTB0 as alternative 2
 	PORTB->PCR[1] = (0x2 <<  8); 					//set adxl sda	set port PTB1 as alternative 2
+	
+	
+	//SPI initilization
+	
+	 spi_init();
+		
 
   
   while(1) {
